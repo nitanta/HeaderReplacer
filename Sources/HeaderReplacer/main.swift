@@ -1,46 +1,38 @@
+import ArgumentParser
 import Foundation
 
-let copyRightString = "//Copyright © 2022 Oozou. All rights reserved."
+struct HeaderReplace: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        abstract: "A Swift command-line tool to update comment headers in a given directory",
+        subcommands: [PerformUpdate.self])
 
-print("🔎 Searching Files")
-let files = findFiles(rootPath: "/Users/nitantaadhikari/Desktop/OOZOU/1112delivery-ios/tpc.xcodeproj", suffix: ".swift") ?? []
-if files.isEmpty {
-    print("🥴 No files found")
-} else {
-    for file in files {
-        print("🚧 Updating \(file)")
-        var lines = Array(open(file).components(separatedBy: "\n").reversed())
-        while lines.last?.hasPrefix("//") == true || lines.last == "" {
-            _ = lines.popLast()
-        }
-        let result = lines.reversed().joined(separator: "\n")
-        save(copyRightString + "\n\n" + result, file)
+    init() {
     }
-    print("🟢 Update Complete")
 }
 
-func findFiles(rootPath: String, suffix: String, ignoreDirs: Bool = true) -> [String]? {
-    var result = [String]()
-    let fileManager = FileManager.default
-    if let paths = fileManager.subpaths(atPath: rootPath) {
-        let swiftPaths = paths.filter { $0.hasSuffix(suffix) }
-        for path in swiftPaths {
-            var isDir : ObjCBool = false
-            let fullPath = (rootPath as NSString).appendingPathComponent(path)
-            if fileManager.fileExists(atPath: fullPath, isDirectory: &isDir) {
-                if ignoreDirs == false || (ignoreDirs && isDir.boolValue == false) {
-                    result.append(fullPath)
-                }
-            }
+HeaderReplace.main()
+
+struct PerformUpdate: ParsableCommand {
+
+    public static let configuration = CommandConfiguration(abstract: "Start to update comment headers in a given directory.")
+
+    @Argument(help: "The copyright info to replace the header comments with")
+    private var copyRight: String
+
+    @Option(name: .shortAndLong, help: "The path of the directory from where the search begins.")
+    private var path: String
+
+    @Flag(name: .shortAndLong, help: "Show extra logging for debugging purposes.")
+    private var verbose = false
+
+    func run() throws {
+        let updater: FileUpdater
+        if verbose {
+             updater = FileUpdater(verbose: true, path: path, copyRight: copyRight)
+        } else {
+             updater = FileUpdater(path: path, copyRight: copyRight)
         }
+        try updater.run()
     }
-    return result.count > 0 ? result : nil
 }
 
-func open(_ file: String) -> String {
-    return try! String(contentsOfFile: file, encoding: .utf8)
-}
-
-func save(_ result: String, _ file: String) {
-    try? result.write(toFile: file, atomically: false, encoding: .utf8)
-}

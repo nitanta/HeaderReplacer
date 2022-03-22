@@ -1,3 +1,3 @@
 # HeaderReplacer
 
-A description of this package.
+Repaces all the pre existing headers of a swift project.
